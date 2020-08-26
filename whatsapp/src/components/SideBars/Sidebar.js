@@ -4,17 +4,18 @@ import {Avatar, IconButton} from "@material-ui/core";
 import {DonutLarge, Chat, MoreVert, SearchOutlined} from '@material-ui/icons'
 import SideChatInfo from '../sideChatsInfo/SideChatInfo';
 import db from '../../firebase';
+import { useStateValue } from '../../ReduxStuffs/StateProvider';
 function Sidebar() {
 
     const [rooms, setRooms] = useState([])
+    const [{user}, dispatch] = useStateValue();
+
     useEffect(() => {
         const unsubscribe = db
             .collection('rooms')
             .onSnapshot(snapshot => (setRooms(snapshot.docs.map(doc => {
                 return ({id: doc.id, data: doc.data()})
             }))));
-
-
             return () => {
                 unsubscribe();
             }
@@ -23,7 +24,7 @@ function Sidebar() {
         <div className={styles.sideBar}>
             {/* sideBar Header */}
             <div className={styles.sidebar__header}>
-                <Avatar/>
+                <Avatar src={user?.photoURL}/>
                 <div className={styles.header__logoContainer}>
                     <IconButton>
                         <DonutLarge/>

@@ -4,13 +4,21 @@ import styles from './mainchat.module.css';
 import {Avatar, IconButton} from '@material-ui/core';
 import {SearchOutlined, AttachFile, MoreVert, InsertEmoticon, Mic} from '@material-ui/icons'
 import db from '../../firebase';
+import {useStateValue} from '../../ReduxStuffs/StateProvider';
+
+import firebase from 'firebase';
 function MainChats() {
 
     const [seed, setSeed] = useState('')
     const [message, setMessage] = useState("");
     const {roomId} = useParams();
     const [roomName, setRoomName] = useState("");
+    const [messageFromDb, setMessageFromDb] = useState([]);
 
+    const [
+        {
+            user
+        }, dispatch] = useStateValue();
     useEffect(() => {
         if (roomId) {
             db
@@ -18,7 +26,14 @@ function MainChats() {
                 .doc(roomId)
                 .onSnapshot(snap => {
                     setRoomName(snap.data().name)
-                })
+                });
+
+            db
+                .collection('rooms')
+                .doc(roomId)
+                .collection('messages')
+                .orderBy('time', 'asc')
+                .onSnapshot(snap => (setMessageFromDb(snap.docs.map(doc => doc.data()))))
         }
     }, [roomId]);
     useEffect(() => {
@@ -28,7 +43,17 @@ function MainChats() {
     const sendMessage = e => {
         e.preventDefault();
         console.log("You typed >>> " + message);
-        setMessage('');
+        db
+            .collection('rooms')
+            .doc(roomId)
+            .collection('messages')
+            .add({
+                text: message, name: user.displayName, time: firebase
+                    .firestore
+                    .FieldValue
+                    .serverTimestamp()
+            })
+        setMessage("");
     }
     return (
         <div className={styles.mainChats}>
@@ -37,7 +62,13 @@ function MainChats() {
                 <Avatar src={`https://avatars.dicebear.com/api/human/${seed}.svg`}/>
                 <div className={styles.mainChats__headerInfo}>
                     <h3>{roomName}</h3>
-                    <p>Last Seen ...</p>
+                    <p>{'Last Seen '+
+                            new Date(
+                                messageFromDb[messageFromDb.length - 1]
+                                    ?.time
+                                        ?.toDate()
+                            ).toUTCString()
+                        }</p>
                 </div>
                 <div className={styles.mainchats__headerIcons}>
                     <IconButton>
@@ -53,11 +84,22 @@ function MainChats() {
             </div>
             {/* Main chats Body */}
             <div className={styles.mainChats__body}>
-                <p className={`${styles.chat__messages} ${true && styles.chat__reciever}`}>
-                    <span className={styles.chatName}>Jigme</span>
-                    Hey Guys
-                    <span className={styles.timeStamp}>3:45 pm</span>
-                </p>
+                {
+                    messageFromDb.map(msg => (
+                        <p
+                            className={`${styles.chat__messages} ${user.displayName === msg.name && styles.chat__reciever}`}>
+                            <span className={styles.chatName}>{msg.name}</span>
+                            {msg.text}
+                            <span className={styles.timeStamp}>{
+                                    new Date(
+                                        msg.time
+                                            ?.toDate()
+                                    ).toUTCString()
+                                }</span>
+                        </p>
+                    ))
+                }
+
             </div>
             {/* Main chats footer */}
             <div className={styles.mainChats__footer}>
@@ -70,7 +112,7 @@ function MainChats() {
                             setMessage(e.target.value);
                         }}
                         placeholder="Type a Message"></input>
-                    <button type="submit" onClick={sendMessage}>SendMessage</button>
+                    <button type="submit" onClick={sendMessage}></button>
                 </form>
                 <Mic/>
             </div>

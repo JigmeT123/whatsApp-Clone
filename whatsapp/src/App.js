@@ -1,12 +1,15 @@
-import React, {useState} from 'react';
+import React from 'react';
 import './app.css';
 import Sidebar from './components/SideBars/Sidebar';
 import MainChats from './components/mainChat/MainChats';
 import {BrowserRouter, Switch, Route} from 'react-router-dom'
 import Login from './auth/Login';
 
+import {useStateValue} from './ReduxStuffs/StateProvider'
+
+
 function App() {
-    const [user, setUser] = useState(null)
+    const [{user}, dispatch] = useStateValue();
     return (
         <div className="app">
 
